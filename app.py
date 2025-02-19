@@ -1,3 +1,5 @@
+import os
+os.environ["WATCHDOG_LIMIT"] = "0"
 import streamlit as st
 import sqlite3
 import bcrypt
