@@ -1,5 +1,4 @@
 streamlit
 bcrypt
-sqlite3
 requests
 watchdog
