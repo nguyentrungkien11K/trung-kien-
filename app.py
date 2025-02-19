@@ -3,7 +3,7 @@ import sqlite3
 import bcrypt
 
 # Link ảnh nền trên GitHub (sau khi tải lên, thay đường dẫn đúng vào đây)
-BACKGROUND_IMAGE = "https://github.com/nguyentrungkien11K/trung-kien-/blob/main/pascal-debrunner-wvZ3zzUftD8-unsplash.jpg"
+BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/refs/heads/main/pascal-debrunner-wvZ3zzUftD8-unsplash.jpg"
 
 # CSS để tạo giao diện giống mẫu
 st.markdown(
