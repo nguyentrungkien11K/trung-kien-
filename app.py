@@ -1,5 +1,4 @@
 import os
-os.environ["WATCHDOG_LIMIT"] = "0"
 import streamlit as st
 import sqlite3
 import bcrypt
@@ -9,13 +8,13 @@ import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# 📨 Thông tin SMTP (Dùng Gmail, có thể đổi sang dịch vụ khác)
-EMAIL_SENDER = "your_email@gmail.com"
-EMAIL_PASSWORD = "your_email_password"
+# 📨 Thông tin SMTP (Cập nhật đúng tài khoản Gmail)
+EMAIL_SENDER = os.getenv("EMAIL_SENDER", "your_email@gmail.com")  # Lấy từ biến môi trường
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "your_email_password")  # Không lưu plaintext
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
-# 🔥 Link ảnh nền trên GitHub
+# 🔥 Link ảnh nền
 BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
 
 # 🎨 CSS giao diện
@@ -56,19 +55,17 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 🔑 Kết nối CSDL SQLite
-def init_db():
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 username TEXT UNIQUE,
-                 password TEXT,
-                 email TEXT UNIQUE,
-                 otp TEXT,
-                 otp_time REAL)''')
-    conn.commit()
-    conn.close()
+# 🔑 Kết nối SQLite
+conn = sqlite3.connect("users.db", check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS users (
+             id INTEGER PRIMARY KEY AUTOINCREMENT,
+             username TEXT UNIQUE,
+             password TEXT,
+             email TEXT UNIQUE,
+             otp TEXT,
+             otp_time REAL)''')
+conn.commit()
 
 # 🔑 Hash mật khẩu
 def hash_password(password):
@@ -97,54 +94,43 @@ def send_otp(to_email, username, otp):
         server.quit()
         return True
     except Exception as e:
+        print("Lỗi gửi OTP:", e)
         return False
 
 # 📌 Đăng ký tài khoản
 def register_user(username, password, email):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
     try:
         hashed_pw = hash_password(password)
         c.execute("INSERT INTO users (username, password, email) VALUES (?, ?, ?)", (username, hashed_pw, email))
         conn.commit()
-        conn.close()
         return True
     except sqlite3.IntegrityError:
         return False
 
 # 🚪 Đăng nhập & tạo OTP
 def login_user(username, password):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
     c.execute("SELECT password, email FROM users WHERE username = ?", (username,))
     user = c.fetchone()
     
     if user and check_password(password, user[0]):
-        otp = str(random.randint(100000, 999999))  # Sinh mã OTP 6 chữ số
-        otp_time = time.time()  # Lưu thời gian tạo OTP
+        otp = str(random.randint(100000, 999999))
+        otp_time = time.time()
         
         c.execute("UPDATE users SET otp = ?, otp_time = ? WHERE username = ?", (otp, otp_time, username))
         conn.commit()
-        conn.close()
         
-        # Gửi OTP qua email
         if send_otp(user[1], username, otp):
             return True
-        else:
-            return False
-    return None
+    return False
 
 # 🕒 Xác thực OTP
 def verify_otp(username, entered_otp):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
     c.execute("SELECT otp, otp_time FROM users WHERE username = ?", (username,))
     data = c.fetchone()
-    conn.close()
-
+    
     if data:
         stored_otp, otp_time = data
-        if stored_otp == entered_otp and time.time() - otp_time <= 300:  # OTP có hiệu lực 5 phút
+        if stored_otp == entered_otp and time.time() - otp_time <= 300:
             return True
     return False
 
@@ -152,7 +138,6 @@ def verify_otp(username, entered_otp):
 menu = ["Đăng nhập", "Đăng ký"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
-# 🎨 Hộp đăng nhập
 st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
 if choice == "Đăng ký":
@@ -177,13 +162,13 @@ elif choice == "Đăng nhập":
     
     if st.button("Gửi mã OTP"):
         if login_user(username, password):
-            st.session_state["otp_username"] = username  # Lưu tạm username
+            st.session_state["otp_username"] = username
             st.session_state["otp_step"] = True
             st.success("📩 Mã OTP đã gửi đến email của bạn.")
         else:
             st.error("🚫 Sai tên đăng nhập hoặc mật khẩu.")
-
-    if "otp_step" in st.session_state and st.session_state["otp_step"]:
+    
+    if "otp_step" in st.session_state:
         otp_code = st.text_input("Nhập mã OTP")
         if st.button("Xác nhận OTP"):
             if verify_otp(st.session_state["otp_username"], otp_code):
@@ -192,8 +177,3 @@ elif choice == "Đăng nhập":
                 st.error("🚫 Mã OTP không hợp lệ hoặc đã hết hạn!")
 
 st.markdown("</div>", unsafe_allow_html=True)
-
-init_db()
-
-
-
