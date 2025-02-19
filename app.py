@@ -2,6 +2,47 @@ import streamlit as st
 import sqlite3
 import bcrypt
 
+# Link ảnh nền trên GitHub (sau khi tải lên, thay đường dẫn đúng vào đây)
+BACKGROUND_IMAGE = "https://raw.githubusercontent.com/tên_tài_khoản/trung-kien-/main/background.jpg"
+
+# CSS để tạo giao diện giống mẫu
+st.markdown(
+    f"""
+    <style>
+        body {{
+            background-image: url('{BACKGROUND_IMAGE}');
+            background-size: cover;
+            background-position: center;
+        }}
+        .login-box {{
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            width: 350px;
+            margin: auto;
+            color: white;
+            text-align: center;
+        }}
+        .stTextInput>div>div>input {{
+            background-color: #fff;
+            border: 2px solid #ffcc00;
+            padding: 10px;
+        }}
+        .stButton>button {{
+            background-color: #ffcc00;
+            color: black;
+            font-size: 18px;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Tiêu đề chính
+st.markdown("<h1 style='text-align: center; color: white;'>🔐 Đăng nhập & Đăng ký</h1>", unsafe_allow_html=True)
+
 # Kết nối SQLite
 def init_db():
     conn = sqlite3.connect("users.db")
@@ -13,15 +54,13 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Hàm tạo mật khẩu hash
+# Hàm đăng ký & đăng nhập
 def hash_password(password):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
-# Hàm kiểm tra mật khẩu
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
 
-# Hàm đăng ký tài khoản
 def register_user(username, password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -34,7 +73,6 @@ def register_user(username, password):
     except sqlite3.IntegrityError:
         return False
 
-# Hàm kiểm tra thông tin đăng nhập
 def login_user(username, password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -45,14 +83,13 @@ def login_user(username, password):
         return True
     return False
 
-# Giao diện Streamlit
-st.title("🔐 Đăng nhập & Đăng ký với Streamlit")
-
 menu = ["Đăng nhập", "Đăng ký"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
+st.markdown("<div class='login-box'>", unsafe_allow_html=True)
+
 if choice == "Đăng ký":
-    st.subheader("🔑 Đăng ký tài khoản")
+    st.markdown("<h2 style='color: #ffcc00;'>📌 Đăng ký tài khoản</h2>", unsafe_allow_html=True)
     new_user = st.text_input("Tên đăng nhập")
     new_password = st.text_input("Mật khẩu", type="password")
     
@@ -66,7 +103,7 @@ if choice == "Đăng ký":
             st.warning("⚠️ Vui lòng nhập đầy đủ thông tin.")
 
 elif choice == "Đăng nhập":
-    st.subheader("🔓 Đăng nhập")
+    st.markdown("<h2 style='color: #ffcc00;'>🔓 Đăng nhập</h2>", unsafe_allow_html=True)
     username = st.text_input("Tên đăng nhập")
     password = st.text_input("Mật khẩu", type="password")
     
@@ -76,5 +113,7 @@ elif choice == "Đăng nhập":
         else:
             st.error("🚫 Sai tên đăng nhập hoặc mật khẩu.")
 
-# Khởi tạo database khi chạy ứng dụng
+st.markdown("</div>", unsafe_allow_html=True)
+
 init_db()
+
