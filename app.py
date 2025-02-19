@@ -9,8 +9,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # 📨 Thông tin SMTP (Cập nhật đúng tài khoản Gmail)
-EMAIL_SENDER = os.getenv("EMAIL_SENDER", "your_email@gmail.com")  # Lấy từ biến môi trường
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "your_email_password")  # Không lưu plaintext
+EMAIL_SENDER = os.getenv("EMAIL_SENDER", "your_email@gmail.com")  
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", "your_email_password")  
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 
@@ -177,4 +177,17 @@ elif choice == "Đăng nhập":
                 st.error("🚫 Mã OTP không hợp lệ hoặc đã hết hạn!")
 
 st.markdown("</div>", unsafe_allow_html=True)
-import check_db  # Import file check_db.py để hiển thị dữ liệu
+
+# 📥 Thêm nút tải xuống database users.db
+st.markdown("---")
+st.markdown("### 📥 Tải về dữ liệu người dùng")
+try:
+    with open("users.db", "rb") as file:
+        st.download_button(
+            label="📥 Tải xuống users.db",
+            data=file,
+            file_name="users.db",
+            mime="application/octet-stream",
+        )
+except FileNotFoundError:
+    st.warning("⚠️ Không tìm thấy file `users.db`. Hãy kiểm tra lại quá trình đăng ký!")
