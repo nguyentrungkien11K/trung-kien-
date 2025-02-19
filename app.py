@@ -177,3 +177,4 @@ elif choice == "Đăng nhập":
                 st.error("🚫 Mã OTP không hợp lệ hoặc đã hết hạn!")
 
 st.markdown("</div>", unsafe_allow_html=True)
+import check_db  # Import file check_db.py để hiển thị dữ liệu
