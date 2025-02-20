@@ -35,7 +35,7 @@ def register_user(username, email, password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
     try:
-        hashed_pw = hash_password(password)  # Mã hóa mật khẩu trước khi lưu
+        hashed_pw = hash_password(password)
         c.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, hashed_pw))
         conn.commit()
         conn.close()
@@ -100,7 +100,7 @@ if "logged_in" in st.session_state and st.session_state["logged_in"]:
     if st.button("🔓 Đăng xuất"):
         del st.session_state["logged_in"]
         del st.session_state["username"]
-        st.experimental_rerun()
+        st.rerun()  # Cập nhật lại trang
 
 # ✅ **Form đăng ký tài khoản**
 elif choice == "Đăng ký":
@@ -149,7 +149,7 @@ elif choice == "Đăng nhập":
                 del st.session_state["login_email"]
                 del st.session_state["pending_username"]
                 
-                st.experimental_rerun()
+                st.rerun()  # Cập nhật lại trang
             else:
                 st.error("🚫 Mã OTP không đúng!")
 
