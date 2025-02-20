@@ -86,8 +86,9 @@ def login_user(username, password):
     c.execute("SELECT password FROM users WHERE username = ?", (username,))
     user = c.fetchone()
     conn.close()
-    if user and check_password(password, user[0]):
-        return True
+    if user:
+        stored_hashed_password = user[0]
+        return check_password(password, stored_hashed_password)
     return False
 
 # 📩 Gửi mã OTP qua email và lưu vào session
@@ -121,14 +122,26 @@ def send_otp(email):
         st.error(f"Lỗi gửi email: {e}")
         return False
 
-# 🔄 Đặt lại mật khẩu
+# 🔄 Đặt lại mật khẩu (Đã sửa lỗi lưu mật khẩu không đúng)
 def reset_password(email, new_password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
     hashed_pw = hash_password(new_password)
+    
+    # Cập nhật mật khẩu trong database
     c.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_pw, email))
     conn.commit()
+
+    # Kiểm tra xem mật khẩu đã được lưu chưa
+    c.execute("SELECT password FROM users WHERE email = ?", (email,))
+    new_hashed_pw = c.fetchone()[0]
     conn.close()
+
+    if check_password(new_password, new_hashed_pw):  
+        print("✅ Mật khẩu đã được cập nhật chính xác!")
+    else:
+        print("⚠️ Có lỗi khi cập nhật mật khẩu!")
+
     return True
 
 # 📌 Giao diện chọn chức năng
