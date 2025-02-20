@@ -6,7 +6,7 @@ import random
 
 # 🔑 Cấu hình Email SMTP của bạn
 EMAIL_SENDER = "trungkien08033@gmail.com"  # Thay bằng email của bạn
-EMAIL_PASSWORD = "zrxg xxmj gtli xgfp"  # Thay bằng mật khẩu ứng dụng Gmail
+EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail (Loại bỏ dấu cách)
 
 # 🎨 CSS để làm đẹp giao diện
 st.markdown(
@@ -63,6 +63,30 @@ def hash_password(password):
 # 🔓 Kiểm tra mật khẩu
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
+
+# 📌 Đăng ký tài khoản
+def register_user(username, email, password):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    try:
+        hashed_pw = hash_password(password)  # Mã hóa mật khẩu trước khi lưu
+        c.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, hashed_pw))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+# 🚪 Đăng nhập tài khoản
+def login_user(username, password):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    c.execute("SELECT password FROM users WHERE username = ?", (username,))
+    user = c.fetchone()
+    conn.close()
+    if user and check_password(password, user[0]):
+        return True
+    return False
 
 # 📩 Gửi mã OTP qua email
 def send_otp(email):
