@@ -1,9 +1,15 @@
 import streamlit as st
 import sqlite3
 import bcrypt
+import smtplib
+import random
 
 # 🔥 Cập nhật đường dẫn ảnh nền
 BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
+
+# 🔑 Cấu hình email gửi mã OTP (sử dụng Gmail)
+EMAIL_SENDER = "your-email@gmail.com"  # Thay bằng email của bạn
+EMAIL_PASSWORD = "your-email-password"  # Thay bằng mật khẩu ứng dụng
 
 # 🎨 CSS để cải thiện giao diện + làm chữ nhập liệu màu đen
 st.markdown(
@@ -24,15 +30,15 @@ st.markdown(
             color: white;
         }}
         .stTextInput>div>div>input {{
-            background-color: rgba(255, 255, 255, 0.9); /* 🌟 Nền sáng hơn */
+            background-color: rgba(255, 255, 255, 0.9);
             border: 2px solid #ffd700;
             padding: 12px;
-            color: black;  /* 🔥 Đổi màu chữ nhập liệu thành đen */
+            color: black;  
             font-weight: bold;
             font-size: 18px;
         }}
         .stTextInput>div>div>input::placeholder {{
-            color: rgba(0, 0, 0, 0.6); /* 🌟 Placeholder màu xám */
+            color: rgba(0, 0, 0, 0.6); 
             font-weight: normal;
         }}
         .stButton>button {{
@@ -65,6 +71,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  username TEXT UNIQUE,
+                 email TEXT UNIQUE,
                  password TEXT)''')
     conn.commit()
     conn.close()
@@ -78,12 +85,12 @@ def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
 
 # 📌 Đăng ký tài khoản
-def register_user(username, password):
+def register_user(username, email, password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
     try:
         hashed_pw = hash_password(password)
-        c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+        c.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, hashed_pw))
         conn.commit()
         conn.close()
         return True
@@ -101,8 +108,33 @@ def login_user(username, password):
         return True
     return False
 
+# 📩 Gửi mã OTP qua email
+def send_otp(email):
+    otp = str(random.randint(100000, 999999))
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        message = f"Subject: Mã OTP đặt lại mật khẩu\n\nMã OTP của bạn là: {otp}"
+        server.sendmail(EMAIL_SENDER, email, message)
+        server.quit()
+        return otp
+    except Exception as e:
+        st.error(f"Lỗi gửi email: {e}")
+        return None
+
+# 🔄 Đặt lại mật khẩu
+def reset_password(email, new_password):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    hashed_pw = hash_password(new_password)
+    c.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_pw, email))
+    conn.commit()
+    conn.close()
+    return True
+
 # 📌 Giao diện chọn chức năng
-menu = ["Đăng nhập", "Đăng ký"]
+menu = ["Đăng nhập", "Đăng ký", "Quên mật khẩu"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
 # 🎨 Hộp đăng nhập
@@ -111,14 +143,15 @@ st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 if choice == "Đăng ký":
     st.markdown("<h2>📌 <strong>Đăng ký tài khoản</strong></h2>", unsafe_allow_html=True)
     new_user = st.text_input("Tên đăng nhập")
+    email = st.text_input("Email")
     new_password = st.text_input("Mật khẩu", type="password")
     
     if st.button("Đăng ký"):
-        if new_user and new_password:
-            if register_user(new_user, new_password):
+        if new_user and email and new_password:
+            if register_user(new_user, email, new_password):
                 st.success("🎉 Đăng ký thành công! Hãy đăng nhập.")
             else:
-                st.error("⚠️ Tên đăng nhập đã tồn tại! Hãy thử tên khác.")
+                st.error("⚠️ Tên đăng nhập hoặc email đã tồn tại! Hãy thử lại.")
         else:
             st.warning("⚠️ Vui lòng nhập đầy đủ thông tin.")
 
@@ -132,6 +165,23 @@ elif choice == "Đăng nhập":
             st.success(f"✅ Đăng nhập thành công! Chào mừng {username}.")
         else:
             st.error("🚫 Sai tên đăng nhập hoặc mật khẩu.")
+
+elif choice == "Quên mật khẩu":
+    st.markdown("<h2>🔄 <strong>Quên mật khẩu</strong></h2>", unsafe_allow_html=True)
+    email = st.text_input("Nhập email của bạn")
+    
+    if st.button("Gửi mã OTP"):
+        otp = send_otp(email)
+        if otp:
+            user_otp = st.text_input("Nhập mã OTP")
+            new_password = st.text_input("Nhập mật khẩu mới", type="password")
+
+            if st.button("Đặt lại mật khẩu"):
+                if user_otp == otp:
+                    reset_password(email, new_password)
+                    st.success("🔄 Mật khẩu đã được cập nhật! Hãy đăng nhập lại.")
+                else:
+                    st.error("🚫 Mã OTP không đúng!")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
