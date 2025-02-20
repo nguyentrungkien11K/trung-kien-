@@ -1,12 +1,12 @@
+import streamlit as st
 import sqlite3
 import bcrypt
 import smtplib
 import random
-import streamlit as st
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# 🔑 Cấu hình Email SMTP của bạn
+# 🔑 Cấu hình Email SMTP
 EMAIL_SENDER = "trungkien08033@gmail.com"  # Thay bằng email của bạn
 EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail
 
@@ -29,6 +29,15 @@ def hash_password(password):
 # 🔓 Kiểm tra mật khẩu
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
+
+# 🔄 Cập nhật mật khẩu mới (Thêm vào để tránh lỗi)
+def reset_password(email, new_password):
+    conn = sqlite3.connect("users.db")
+    c = conn.cursor()
+    hashed_pw = hash_password(new_password)
+    c.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_pw, email))
+    conn.commit()
+    conn.close()
 
 # 📌 Đăng ký tài khoản
 def register_user(username, email, password):
@@ -57,14 +66,53 @@ def login_user(username, password):
             return email  # Trả về email nếu mật khẩu đúng
     return None  # Sai mật khẩu hoặc tài khoản không tồn tại
 
+# 📩 Gửi mã OTP qua email
+def send_otp(email):
+    otp = str(random.randint(100000, 999999))  # Tạo mã OTP ngẫu nhiên
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = email
+        msg["Subject"] = "Mã OTP đăng nhập"
+
+        body = f"Mã OTP của bạn là: {otp}"
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        server.sendmail(EMAIL_SENDER, email, msg.as_string())
+        server.quit()
+
+        # Lưu OTP vào session
+        st.session_state["otp"] = otp
+        st.session_state["login_email"] = email
+        
+        return True
+    except Exception as e:
+        st.error(f"Lỗi gửi email: {e}")
+        return False
+
 # 📌 Giao diện chọn chức năng
 menu = ["Đăng nhập", "Đăng ký", "Quên mật khẩu"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
 st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
-# ✅ **Đăng ký tài khoản**
-if choice == "Đăng ký":
+# ✅ **Kiểm tra nếu đã đăng nhập thì hiển thị trang chào mừng**
+if "logged_in" in st.session_state and st.session_state["logged_in"]:
+    st.markdown(f"<h2>🎉 Chào mừng {st.session_state['username']}!</h2>", unsafe_allow_html=True)
+    st.write("Bạn đã đăng nhập thành công. Chúc bạn một ngày tốt lành! ☕😊")
+
+    # Nút đăng xuất
+    if st.button("🔓 Đăng xuất"):
+        del st.session_state["logged_in"]
+        del st.session_state["username"]
+        st.rerun()  # Cập nhật lại trang
+
+# ✅ **Form đăng ký tài khoản**
+elif choice == "Đăng ký":
     st.markdown("<h2>📌 <strong>Đăng ký tài khoản</strong></h2>", unsafe_allow_html=True)
     new_user = st.text_input("Tên đăng nhập")
     email = st.text_input("Email")
@@ -79,7 +127,7 @@ if choice == "Đăng ký":
         else:
             st.warning("⚠️ Vui lòng nhập đầy đủ thông tin.")
 
-# ✅ **Đăng nhập**
+# ✅ **Form đăng nhập**
 elif choice == "Đăng nhập":
     st.markdown("<h2>🔓 <strong>Đăng nhập</strong></h2>", unsafe_allow_html=True)
     username = st.text_input("Tên đăng nhập")
@@ -88,11 +136,56 @@ elif choice == "Đăng nhập":
     if st.button("Đăng nhập"):
         email = login_user(username, password)
         if email:
-            st.success(f"✅ Đăng nhập thành công! Chào mừng {username}.")
-            st.session_state["logged_in"] = True
-            st.session_state["username"] = username
+            if send_otp(email):
+                st.success("✅ Mã OTP đã được gửi! Vui lòng kiểm tra email.")
+                st.session_state["pending_username"] = username  # Lưu username vào session
         else:
             st.error("🚫 Sai tên đăng nhập hoặc mật khẩu.")
+
+    if "otp" in st.session_state:
+        user_otp = st.text_input("Nhập mã OTP", key="otp_login")
+
+        if st.button("Xác nhận OTP"):
+            if user_otp == st.session_state["otp"]:
+                st.success(f"🎉 Đăng nhập thành công! Chào mừng {st.session_state['pending_username']}.")
+
+                # Đánh dấu người dùng đã đăng nhập
+                st.session_state["logged_in"] = True
+                st.session_state["username"] = st.session_state["pending_username"]
+
+                # Xóa OTP sau khi đăng nhập thành công
+                del st.session_state["otp"]
+                del st.session_state["login_email"]
+                del st.session_state["pending_username"]
+                
+                st.rerun()  # Cập nhật lại trang
+            else:
+                st.error("🚫 Mã OTP không đúng!")
+
+# ✅ **Quên mật khẩu**
+elif choice == "Quên mật khẩu":
+    st.markdown("<h2>🔄 <strong>Quên mật khẩu</strong></h2>", unsafe_allow_html=True)
+    email = st.text_input("Nhập email của bạn")
+    
+    if st.button("Gửi mã OTP"):
+        if send_otp(email):
+            st.success("✅ Mã OTP đã được gửi! Kiểm tra email của bạn.")
+
+    if "otp" in st.session_state:
+        user_otp = st.text_input("Nhập mã OTP", key="otp_input")
+        new_password = st.text_input("Nhập mật khẩu mới", type="password", key="new_password_reset")
+
+        if st.button("Đặt lại mật khẩu"):
+            if user_otp == st.session_state["otp"]:
+                if "login_email" in st.session_state and st.session_state["login_email"]:
+                    reset_password(st.session_state["login_email"], new_password)
+                    st.success("🔄 Mật khẩu đã được cập nhật! Hãy đăng nhập lại.")
+                    del st.session_state["otp"]
+                    del st.session_state["login_email"]
+                else:
+                    st.error("🚫 Không tìm thấy email để đặt lại mật khẩu!")
+            else:
+                st.error("🚫 Mã OTP không đúng!")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
