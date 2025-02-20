@@ -5,12 +5,11 @@ import bcrypt
 # 🔥 Cập nhật đường dẫn ảnh nền
 BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
 
-# 🎨 CSS để cải thiện giao diện
+# 🎨 CSS để cải thiện giao diện + làm đậm chữ trong ô nhập liệu
 st.markdown(
     f"""
     <style>
         body {{
-            background-image: url('{BACKGROUND_IMAGE}');
             background-size: cover;
             background-position: center;
             font-family: Arial, sans-serif;
@@ -27,8 +26,14 @@ st.markdown(
         .stTextInput>div>div>input {{
             background-color: rgba(255, 255, 255, 0.2);
             border: 2px solid #ffd700;
-            padding: 10px;
+            padding: 12px;
             color: white;
+            font-weight: bold;  /* 🔥 Làm đậm chữ nhập vào */
+            font-size: 18px;  /* 📌 Tăng kích thước chữ */
+        }}
+        .stTextInput>div>div>input::placeholder {{
+            color: rgba(255, 255, 255, 0.6); /* 🌟 Làm chữ gợi ý mờ */
+            font-weight: normal;
         }}
         .stButton>button {{
             background: linear-gradient(to right, #ff416c, #ff4b2b);
@@ -38,6 +43,7 @@ st.markdown(
             border-radius: 5px;
             width: 100%;
             border: none;
+            font-weight: bold;
         }}
         h2 {{
             color: #ffd700;
@@ -130,4 +136,3 @@ elif choice == "Đăng nhập":
 st.markdown("</div>", unsafe_allow_html=True)
 
 init_db()
-
