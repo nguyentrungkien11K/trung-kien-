@@ -79,19 +79,22 @@ def register_user(username, email, password):
     except sqlite3.IntegrityError:
         return False
 
-# 🚪 Đăng nhập tài khoản
+# 🚪 Đăng nhập tài khoản (Bước 1: Kiểm tra mật khẩu)
 def login_user(username, password):
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
-    c.execute("SELECT password FROM users WHERE username = ?", (username,))
+    c.execute("SELECT email, password FROM users WHERE username = ?", (username,))
     user = c.fetchone()
     conn.close()
+    
     if user:
-        stored_hashed_password = user[0]
-        return check_password(password, stored_hashed_password)
-    return False
+        email, stored_hashed_password = user
+        if check_password(password, stored_hashed_password):
+            return email  # Trả về email nếu mật khẩu đúng (Tiếp tục bước 2: Gửi OTP)
+    
+    return None  # Sai mật khẩu hoặc tài khoản không tồn tại
 
-# 📩 Gửi mã OTP qua email và lưu vào session
+# 📩 Gửi mã OTP qua email
 def send_otp(email):
     otp = str(random.randint(100000, 999999))  # Tạo mã OTP ngẫu nhiên
     try:
@@ -103,7 +106,7 @@ def send_otp(email):
         msg = MIMEMultipart()
         msg["From"] = EMAIL_SENDER
         msg["To"] = email
-        msg["Subject"] = "Mã OTP đặt lại mật khẩu"
+        msg["Subject"] = "Mã OTP đăng nhập"
         
         # Nội dung email
         body = f"Mã OTP của bạn là: {otp}"
@@ -113,36 +116,14 @@ def send_otp(email):
         server.sendmail(EMAIL_SENDER, email, msg.as_string())
         server.quit()
 
-        # Lưu OTP vào session để kiểm tra sau này
+        # Lưu OTP vào session
         st.session_state["otp"] = otp
-        st.session_state["reset_email"] = email
+        st.session_state["login_email"] = email
         
         return True
     except Exception as e:
         st.error(f"Lỗi gửi email: {e}")
         return False
-
-# 🔄 Đặt lại mật khẩu (Đã sửa lỗi lưu mật khẩu không đúng)
-def reset_password(email, new_password):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-    hashed_pw = hash_password(new_password)
-    
-    # Cập nhật mật khẩu trong database
-    c.execute("UPDATE users SET password = ? WHERE email = ?", (hashed_pw, email))
-    conn.commit()
-
-    # Kiểm tra xem mật khẩu đã được lưu chưa
-    c.execute("SELECT password FROM users WHERE email = ?", (email,))
-    new_hashed_pw = c.fetchone()[0]
-    conn.close()
-
-    if check_password(new_password, new_hashed_pw):  
-        print("✅ Mật khẩu đã được cập nhật chính xác!")
-    else:
-        print("⚠️ Có lỗi khi cập nhật mật khẩu!")
-
-    return True
 
 # 📌 Giao diện chọn chức năng
 menu = ["Đăng nhập", "Đăng ký", "Quên mật khẩu"]
@@ -171,10 +152,27 @@ elif choice == "Đăng nhập":
     password = st.text_input("Mật khẩu", type="password")
     
     if st.button("Đăng nhập"):
-        if login_user(username, password):
-            st.success(f"✅ Đăng nhập thành công! Chào mừng {username}.")
+        email = login_user(username, password)
+        if email:
+            if send_otp(email):
+                st.success("✅ Mã OTP đã được gửi! Vui lòng kiểm tra email.")
+                st.session_state["username"] = username  # Lưu username vào session
         else:
             st.error("🚫 Sai tên đăng nhập hoặc mật khẩu.")
+
+    if "otp" in st.session_state:
+        user_otp = st.text_input("Nhập mã OTP", key="otp_login")
+
+        if st.button("Xác nhận OTP"):
+            if user_otp == st.session_state["otp"]:
+                st.success(f"🎉 Đăng nhập thành công! Chào mừng {st.session_state['username']}.")
+
+                # Xóa OTP sau khi đăng nhập thành công
+                del st.session_state["otp"]
+                del st.session_state["login_email"]
+                del st.session_state["username"]
+            else:
+                st.error("🚫 Mã OTP không đúng!")
 
 elif choice == "Quên mật khẩu":
     st.markdown("<h2>🔄 <strong>Quên mật khẩu</strong></h2>", unsafe_allow_html=True)
@@ -190,10 +188,10 @@ elif choice == "Quên mật khẩu":
 
         if st.button("Đặt lại mật khẩu"):
             if user_otp == st.session_state["otp"]:
-                reset_password(st.session_state["reset_email"], new_password)
+                reset_password(st.session_state["login_email"], new_password)
                 st.success("🔄 Mật khẩu đã được cập nhật! Hãy đăng nhập lại.")
                 del st.session_state["otp"]
-                del st.session_state["reset_email"]
+                del st.session_state["login_email"]
             else:
                 st.error("🚫 Mã OTP không đúng!")
 
