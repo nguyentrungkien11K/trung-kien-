@@ -3,10 +3,12 @@ import sqlite3
 import bcrypt
 import smtplib
 import random
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 # 🔑 Cấu hình Email SMTP của bạn
 EMAIL_SENDER = "trungkien08033@gmail.com"  # Thay bằng email của bạn
-EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail (Loại bỏ dấu cách)
+EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail (Không có dấu cách)
 
 # 🎨 CSS để làm đẹp giao diện
 st.markdown(
@@ -88,17 +90,29 @@ def login_user(username, password):
         return True
     return False
 
-# 📩 Gửi mã OTP qua email
+# 📩 Gửi mã OTP qua email (Fix lỗi mã hóa UTF-8)
 def send_otp(email):
-    otp = str(random.randint(100000, 999999))
+    otp = str(random.randint(100000, 999999))  # Tạo mã OTP ngẫu nhiên
     try:
         server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        message = f"Subject: Mã OTP đặt lại mật khẩu\n\nMã OTP của bạn là: {otp}"
-        server.sendmail(EMAIL_SENDER, email, message)
+
+        # Tạo email với UTF-8
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_SENDER
+        msg["To"] = email
+        msg["Subject"] = "Mã OTP đặt lại mật khẩu"
+        
+        # Nội dung email
+        body = f"Mã OTP của bạn là: {otp}"
+        msg.attach(MIMEText(body, "plain", "utf-8"))  # Mã hóa nội dung email UTF-8
+
+        # Gửi email
+        server.sendmail(EMAIL_SENDER, email, msg.as_string())
         server.quit()
-        return otp
+        
+        return otp  # Trả về mã OTP để xác minh
     except Exception as e:
         st.error(f"Lỗi gửi email: {e}")
         return None
