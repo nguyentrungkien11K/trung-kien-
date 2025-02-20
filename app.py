@@ -5,7 +5,7 @@ import bcrypt
 # 🔥 Cập nhật đường dẫn ảnh nền
 BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
 
-# 🎨 CSS để cải thiện giao diện + làm đậm chữ trong ô nhập liệu
+# 🎨 CSS để cải thiện giao diện + làm chữ nhập liệu màu đen
 st.markdown(
     f"""
     <style>
@@ -24,15 +24,15 @@ st.markdown(
             color: white;
         }}
         .stTextInput>div>div>input {{
-            background-color: rgba(255, 255, 255, 0.2);
+            background-color: rgba(255, 255, 255, 0.9); /* 🌟 Nền sáng hơn */
             border: 2px solid #ffd700;
             padding: 12px;
-            color: white;
-            font-weight: bold;  /* 🔥 Làm đậm chữ nhập vào */
-            font-size: 18px;  /* 📌 Tăng kích thước chữ */
+            color: black;  /* 🔥 Đổi màu chữ nhập liệu thành đen */
+            font-weight: bold;
+            font-size: 18px;
         }}
         .stTextInput>div>div>input::placeholder {{
-            color: rgba(255, 255, 255, 0.6); /* 🌟 Làm chữ gợi ý mờ */
+            color: rgba(0, 0, 0, 0.6); /* 🌟 Placeholder màu xám */
             font-weight: normal;
         }}
         .stButton>button {{
