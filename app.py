@@ -4,23 +4,15 @@ import bcrypt
 import smtplib
 import random
 
-# 🔥 Cập nhật đường dẫn ảnh nền
-BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
+# 🔑 Cấu hình Email SMTP của bạn
+EMAIL_SENDER = "trungkien08033@gmail.com"  # Thay bằng email của bạn
+EMAIL_PASSWORD = "zrxg xxmj gtli xgfp"  # Thay bằng mật khẩu ứng dụng Gmail
 
-# 🔑 Cấu hình email gửi mã OTP (sử dụng Gmail)
-EMAIL_SENDER = "your-email@gmail.com"  # Thay bằng email của bạn
-EMAIL_PASSWORD = "your-email-password"  # Thay bằng mật khẩu ứng dụng
-
-# 🎨 CSS để cải thiện giao diện + làm chữ nhập liệu màu đen
+# 🎨 CSS để làm đẹp giao diện
 st.markdown(
-    f"""
+    """
     <style>
-        body {{
-            background-size: cover;
-            background-position: center;
-            font-family: Arial, sans-serif;
-        }}
-        .login-box {{
+        .login-box {
             background: rgba(0, 0, 0, 0.6);
             padding: 40px;
             border-radius: 10px;
@@ -28,20 +20,16 @@ st.markdown(
             margin: auto;
             text-align: center;
             color: white;
-        }}
-        .stTextInput>div>div>input {{
+        }
+        .stTextInput>div>div>input {
             background-color: rgba(255, 255, 255, 0.9);
             border: 2px solid #ffd700;
             padding: 12px;
-            color: black;  
+            color: black;
             font-weight: bold;
             font-size: 18px;
-        }}
-        .stTextInput>div>div>input::placeholder {{
-            color: rgba(0, 0, 0, 0.6); 
-            font-weight: normal;
-        }}
-        .stButton>button {{
+        }
+        .stButton>button {
             background: linear-gradient(to right, #ff416c, #ff4b2b);
             color: white;
             font-size: 18px;
@@ -50,21 +38,13 @@ st.markdown(
             width: 100%;
             border: none;
             font-weight: bold;
-        }}
-        h2 {{
-            color: #ffd700;
-            font-weight: bold !important;
-            text-align: center;
-        }}
+        }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 🔑 Tiêu đề chính
-st.markdown("<h1 style='text-align: center; color: white;'>🔐 Đăng nhập & Đăng ký</h1>", unsafe_allow_html=True)
-
-# 🗄️ Kết nối CSDL SQLite
+# 🔑 Kết nối Database
 def init_db():
     conn = sqlite3.connect("users.db")
     c = conn.cursor()
@@ -83,30 +63,6 @@ def hash_password(password):
 # 🔓 Kiểm tra mật khẩu
 def check_password(password, hashed_password):
     return bcrypt.checkpw(password.encode(), hashed_password.encode())
-
-# 📌 Đăng ký tài khoản
-def register_user(username, email, password):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-    try:
-        hashed_pw = hash_password(password)
-        c.execute("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", (username, email, hashed_pw))
-        conn.commit()
-        conn.close()
-        return True
-    except sqlite3.IntegrityError:
-        return False
-
-# 🚪 Đăng nhập tài khoản
-def login_user(username, password):
-    conn = sqlite3.connect("users.db")
-    c = conn.cursor()
-    c.execute("SELECT password FROM users WHERE username = ?", (username,))
-    user = c.fetchone()
-    conn.close()
-    if user and check_password(password, user[0]):
-        return True
-    return False
 
 # 📩 Gửi mã OTP qua email
 def send_otp(email):
@@ -137,7 +93,6 @@ def reset_password(email, new_password):
 menu = ["Đăng nhập", "Đăng ký", "Quên mật khẩu"]
 choice = st.sidebar.selectbox("Chọn chức năng", menu)
 
-# 🎨 Hộp đăng nhập
 st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
 if choice == "Đăng ký":
