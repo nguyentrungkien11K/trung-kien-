@@ -2,10 +2,10 @@ import streamlit as st
 import sqlite3
 import bcrypt
 
-# 🔥 Cập nhật đường dẫn ảnh nền (sau khi tải lên GitHub)
+# 🔥 Cập nhật đường dẫn ảnh nền
 BACKGROUND_IMAGE = "https://raw.githubusercontent.com/nguyentrungkien11K/trung-kien-/main/banner1.jpg"
 
-# 🎨 CSS để tạo giao diện với nền ảnh mờ
+# 🎨 CSS để cải thiện giao diện
 st.markdown(
     f"""
     <style>
@@ -39,12 +39,17 @@ st.markdown(
             width: 100%;
             border: none;
         }}
+        h2 {{
+            color: #ffd700;
+            font-weight: bold !important;
+            text-align: center;
+        }}
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 🔑 Tiêu đề
+# 🔑 Tiêu đề chính
 st.markdown("<h1 style='text-align: center; color: white;'>🔐 Đăng nhập & Đăng ký</h1>", unsafe_allow_html=True)
 
 # 🗄️ Kết nối CSDL SQLite
@@ -98,7 +103,7 @@ choice = st.sidebar.selectbox("Chọn chức năng", menu)
 st.markdown("<div class='login-box'>", unsafe_allow_html=True)
 
 if choice == "Đăng ký":
-    st.markdown("<h2 style='color: #ffd700;'>📌 Đăng ký tài khoản</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📌 <strong>Đăng ký tài khoản</strong></h2>", unsafe_allow_html=True)
     new_user = st.text_input("Tên đăng nhập")
     new_password = st.text_input("Mật khẩu", type="password")
     
@@ -112,7 +117,7 @@ if choice == "Đăng ký":
             st.warning("⚠️ Vui lòng nhập đầy đủ thông tin.")
 
 elif choice == "Đăng nhập":
-    st.markdown("<h2 style='color: #ffd700;'>🔓 Đăng nhập</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>🔓 <strong>Đăng nhập</strong></h2>", unsafe_allow_html=True)
     username = st.text_input("Tên đăng nhập")
     password = st.text_input("Mật khẩu", type="password")
     
@@ -125,3 +130,4 @@ elif choice == "Đăng nhập":
 st.markdown("</div>", unsafe_allow_html=True)
 
 init_db()
+
