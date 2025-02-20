@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 
 # 🔑 Cấu hình Email SMTP của bạn
 EMAIL_SENDER = "trungkien08033@gmail.com"  # Thay bằng email của bạn
-EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail (Không có dấu cách)
+EMAIL_PASSWORD = "zrxgxxmjgtlixgfp"  # Thay bằng mật khẩu ứng dụng Gmail
 
 # 🎨 CSS để làm đẹp giao diện
 st.markdown(
@@ -90,7 +90,7 @@ def login_user(username, password):
         return True
     return False
 
-# 📩 Gửi mã OTP qua email (Fix lỗi mã hóa UTF-8)
+# 📩 Gửi mã OTP qua email và lưu vào session
 def send_otp(email):
     otp = str(random.randint(100000, 999999))  # Tạo mã OTP ngẫu nhiên
     try:
@@ -111,11 +111,15 @@ def send_otp(email):
         # Gửi email
         server.sendmail(EMAIL_SENDER, email, msg.as_string())
         server.quit()
+
+        # Lưu OTP vào session để kiểm tra sau này
+        st.session_state["otp"] = otp
+        st.session_state["reset_email"] = email
         
-        return otp  # Trả về mã OTP để xác minh
+        return True
     except Exception as e:
         st.error(f"Lỗi gửi email: {e}")
-        return None
+        return False
 
 # 🔄 Đặt lại mật khẩu
 def reset_password(email, new_password):
@@ -164,17 +168,21 @@ elif choice == "Quên mật khẩu":
     email = st.text_input("Nhập email của bạn")
     
     if st.button("Gửi mã OTP"):
-        otp = send_otp(email)
-        if otp:
-            user_otp = st.text_input("Nhập mã OTP")
-            new_password = st.text_input("Nhập mật khẩu mới", type="password")
+        if send_otp(email):
+            st.success("✅ Mã OTP đã được gửi! Kiểm tra email của bạn.")
 
-            if st.button("Đặt lại mật khẩu"):
-                if user_otp == otp:
-                    reset_password(email, new_password)
-                    st.success("🔄 Mật khẩu đã được cập nhật! Hãy đăng nhập lại.")
-                else:
-                    st.error("🚫 Mã OTP không đúng!")
+    if "otp" in st.session_state:
+        user_otp = st.text_input("Nhập mã OTP", key="otp_input")
+        new_password = st.text_input("Nhập mật khẩu mới", type="password", key="new_password_reset")
+
+        if st.button("Đặt lại mật khẩu"):
+            if user_otp == st.session_state["otp"]:
+                reset_password(st.session_state["reset_email"], new_password)
+                st.success("🔄 Mật khẩu đã được cập nhật! Hãy đăng nhập lại.")
+                del st.session_state["otp"]
+                del st.session_state["reset_email"]
+            else:
+                st.error("🚫 Mã OTP không đúng!")
 
 st.markdown("</div>", unsafe_allow_html=True)
 
