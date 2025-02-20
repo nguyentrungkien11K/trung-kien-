@@ -4,7 +4,8 @@ import bcrypt
 import smtplib
 import random
 from email.mime.text import MIMEText
-from email.multipart import MIMEMultipart
+from email.mime.multipart import MIMEMultipart
+
 
 # 🔑 Email SMTP Configuration
 EMAIL_SENDER = "trungkien08033@gmail.com"
